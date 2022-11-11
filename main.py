@@ -7,6 +7,7 @@ from flask import abort
 from user import User
 from category import Category
 from product import Product
+from order_item import OrderItem
 import jsonpickle
 
 def getConnection():
@@ -250,6 +251,49 @@ def deleteProductById(productId):
 
     return '', 200
 
+
+@app.route('/order-item', methods = ['POST'])
+def addOrderItemToOrder():
+    orderId = request.args.get('orderId', '')
+    productId = request.args.get('productId', '')
+    connection = getConnection()
+    cursor = connection.cursor()
+    query = 'INSERT INTO OrderItem(productId, amount, orderId) VALUES(%s, %s, %s);'
+    cursor.execute(query, (productId, 1, orderId))
+    connection.commit()
+    connection.close()
+
+    return '', 200
+
+
+@app.route('/order-item/<int:orderItemId>', methods = ['DELETE'])
+def deleteOrderItemById(orderItemId):
+    connection = getConnection()
+    cursor = connection.cursor()
+    query = 'DELETE FROM OrderItem WHERE orderItemId=%s;'
+    cursor.execute(query, (orderItemId,))
+    connection.commit()
+    connection.close()
+
+    return '', 200
+
+
+@app.route('order-item', methods = ['PUT'])
+def changeOrderItemAmount():
+    orderItemId = request.args.get('orderItemId', '')
+    amount = request.args.get('amount', '')
+    if orderItemId == '' or amount == '':
+        # 400 - Bad Request
+        abort(400)
+
+    connection = getConnection()
+    cursor = connection.cursor()
+    query = 'UPDATE OrderItem SET amount=%s WHERE orderItemId=%s;'
+    cursor.execute(query, (amount, orderItemId))
+    connection.commit()
+    connection.close()
+
+    return '', 200
 
 
 if __name__ == '__main__':
