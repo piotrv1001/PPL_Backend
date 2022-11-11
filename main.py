@@ -3,6 +3,7 @@ from flask import Flask
 from flask_restful import Api, Resource
 from flask import request
 from flask import abort
+from flask import session
 # from flask import jsonify
 from user import User
 from category import Category
@@ -20,6 +21,8 @@ def getConnection():
     )
 
 app = Flask(__name__)
+# Set the secret key to some random bytes. Keep this really secret!
+app.secret_key = b'c3b3f5a8003aeb3eaf74cc392c38ae8b55180b97598ce7b3058da1686714a618'
 api = Api(app)
 
 @app.route('/user', methods = ['GET'])
@@ -51,7 +54,7 @@ def getUsers():
 def register():
     requestData = request.get_json()
     connection = getConnection()
-    cursor = connection.cursor()
+    cursor = connection.cursor(dictionary = True)
     query = 'INSERT INTO User(email, password, name, address, phoneNumber, isAdmin) VALUES (%(email)s, %(password)s, %(name)s, %(address)s, %(phoneNumber)s, %(isAdmin)s);'
     cursor.execute(query, requestData)
     connection.commit()
@@ -78,9 +81,19 @@ def login():
         connection.close()
         # 404 - Not Found
         abort(404)
+    
+    userId = result[0]['userId']
+    session['userId'] = userId
 
     connection.close()
     return ('', 200)
+
+
+@app.route('/logout')
+def logout():
+    session.pop('userId', None)
+
+    return '', 200
 
 
 @app.route('/user/<int:userId>', methods = ['GET'])
@@ -133,7 +146,7 @@ def getCategories():
 def addCategory():
     requestData = request.get_json()
     connection = getConnection()
-    cursor = connection.cursor()
+    cursor = connection.cursor(dictionary = True)
     query = 'INSERT INTO Category(name) VALUES (%(name)s)'
     cursor.execute(query, requestData)
     connection.commit()
@@ -231,8 +244,8 @@ def getProductById(productId):
 def addProduct():
     requestData = request.get_json()
     connection = getConnection()
-    cursor = connection.cursor()
-    query = 'INSERT INTO Product(name, price, categoryId) VALUES (%(name)s, %(price)s, %(categoryId)s)'
+    cursor = connection.cursor(dictionary = True)
+    query = 'INSERT INTO Product(name, price, categoryId) VALUES (%(name)s, %(price)s, %(categoryId)s);'
     cursor.execute(query, requestData)
     connection.commit()
     connection.close()
@@ -290,6 +303,31 @@ def changeOrderItemAmount():
     cursor = connection.cursor()
     query = 'UPDATE OrderItem SET amount=%s WHERE orderItemId=%s;'
     cursor.execute(query, (amount, orderItemId))
+    connection.commit()
+    connection.close()
+
+    return '', 200
+
+
+@app.route('order', methods = ['POST'])
+def addNewOrder():
+    requestData = request.get_json()
+    connection = getConnection()
+    cursor = connection.cursor(dictionary = True)
+    query = 'INSERT INTO Order(address, name, phoneNumber, status) VALUES (%(address)s, %(name)s, %(phoneNumber)s, %(status)s);'
+    cursor.execute(query, requestData)
+    connection.commit()
+    connection.close()
+
+    return requestData, 201
+
+
+@app.route('order/<int:orderId>', methods = ['PUT'])
+def payForOrder(orderId):
+    connection = getConnection()
+    cursor = connection.cursor()
+    query = 'UPDATE Order SET status=1 WHERE orderId=%s;'
+    cursor.execute(query, (orderId,))
     connection.commit()
     connection.close()
 
