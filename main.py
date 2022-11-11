@@ -5,6 +5,7 @@ from flask import request
 from flask import abort
 # from flask import jsonify
 from user import User
+from category import Category
 import jsonpickle
 
 def getConnection():
@@ -105,6 +106,49 @@ def getUserById(userId):
 
     return jsonpickle.encode(user, unpicklable = False)
 
+
+@app.route('/category', methods = ['GET'])
+def getCategories():
+    categories = []
+    connection = getConnection()
+    cursor = connection.cursor(dictionary = True)
+    query = 'SELECT * FROM Category;'
+    cursor.execute(query)
+
+    for row in cursor:
+        currentCategory = Category(
+            name = row['name']
+        )
+        categories.append(currentCategory)
+
+    connection.close()
+
+    return jsonpickle.encode(categories, unpicklable = False)
+
+
+@app.route('/category', methods = 'POST')
+def addCategory():
+    requestData = request.get_json()
+    connection = getConnection()
+    cursor = connection.cursor()
+    query = 'INSERT INTO Category(name) VALUES (%(name)s)'
+    cursor.execute(query, requestData)
+    connection.commit()
+    connection.close()
+
+    return requestData, 201
+
+
+@app.route('/category/<int:categoryId>', methods = 'DELETE')
+def deleteCategoryById(categoryId):
+    connection = getConnection()
+    cursor = connection.cursor()
+    query = 'DELETE FROM Category WHERE categoryId=%s;'
+    cursor.execute(query, (categoryId,))
+    connection.commit()
+    connection.close()
+
+    return '', 200
 
 
 if __name__ == '__main__':
