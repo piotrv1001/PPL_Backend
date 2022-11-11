@@ -6,6 +6,7 @@ from flask import abort
 # from flask import jsonify
 from user import User
 from category import Category
+from product import Product
 import jsonpickle
 
 def getConnection():
@@ -60,6 +61,7 @@ def register():
 
 @app.route('/login', methods = ['POST'])
 def login():
+    # Request must have /login?email=email&password=password
     email = request.args.get('email', '')
     password = request.args.get('password', '')
     if email == '' or password == '':
@@ -149,6 +151,105 @@ def deleteCategoryById(categoryId):
     connection.close()
 
     return '', 200
+
+
+@app.route('/product', methods = ['GET'])
+def getProducts():
+    products = []
+    connection = getConnection()
+    cursor = connection.cursor(dictionary = True)
+    query = 'SELECT * FROM Product;'
+    cursor.execute(query)
+
+    for row in cursor:
+        currentProduct = Product(
+            productId = row['productId'],
+            name = row['name'],
+            price = row['price'],
+            categoryId = row['categoryId']
+        )
+        products.append(currentProduct)
+
+    connection.close()
+
+    return jsonpickle.encode(products, unpicklable = False)
+
+
+@app.route('/product', methods = ['GET'])
+def getProductsByCategory():
+    categoryId = request.args.get('categoryId', '')
+    if categoryId == '':
+        # 400 - Bad Request
+        abort(400)
+
+    products = []
+    connection = getConnection()
+    cursor = connection.cursor(dictionary = True)
+    query = 'SELECT * FROM Product WHERE categoryId=%s;'
+    cursor.execute(query, (categoryId,))
+
+    for row in cursor:
+        currentProduct = Product(
+            productId = row['productId'],
+            name = row['name'],
+            price = row['price'],
+            categoryId = row['categoryId']
+        )
+        products.append(currentProduct)
+
+    connection.close()
+
+    return jsonpickle.encode(products, unpicklable = False)
+
+
+@app.route('/product/<int:productId>', methods = ['GET'])
+def getProductById(productId):
+    connection = getConnection()
+    cursor = connection.cursor(dictionary = True)
+    query = "SELECT * FROM Product WHERE productId=%s;"
+    cursor.execute(query, (productId,))
+    result = cursor.fetchall()
+    if len(result) == 0:
+        connection.close()
+        # 404 - Not Found
+        abort(404)
+    
+    product = None
+    row = result[0]
+    product = Product(
+        productId = row['productId'],
+        name = row['name'],
+        price = row['price'],
+        categoryId = row['categoryId']
+    )
+
+    return jsonpickle.encode(product, unpicklable = False)
+
+
+@app.route('/product', methods = ['POST'])
+def addProduct():
+    requestData = request.get_json()
+    connection = getConnection()
+    cursor = connection.cursor()
+    query = 'INSERT INTO Product(name, price, categoryId) VALUES (%(name)s, %(price)s, %(categoryId)s)'
+    cursor.execute(query, requestData)
+    connection.commit()
+    connection.close()
+
+    return requestData, 201
+
+
+@app.route('/product/<int:productId>', methods = ['DELETE'])
+def deleteProductById(productId):
+    connection = getConnection()
+    cursor = connection.cursor()
+    query = 'DELETE FROM Product WHERE productId=%s;'
+    cursor.execute(query, (productId,))
+    connection.commit()
+    connection.close()
+
+    return '', 200
+
 
 
 if __name__ == '__main__':
