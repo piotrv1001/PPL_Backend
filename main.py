@@ -142,7 +142,7 @@ def getCategories():
     return jsonpickle.encode(categories, unpicklable = False)
 
 
-@app.route('/category', methods = 'POST')
+@app.route('/category', methods = ['POST'])
 def addCategory():
     requestData = request.get_json()
     connection = getConnection()
@@ -155,7 +155,7 @@ def addCategory():
     return requestData, 201
 
 
-@app.route('/category/<int:categoryId>', methods = 'DELETE')
+@app.route('/category/<int:categoryId>', methods = ['DELETE'])
 def deleteCategoryById(categoryId):
     connection = getConnection()
     cursor = connection.cursor()
@@ -291,7 +291,7 @@ def deleteOrderItemById(orderItemId):
     return '', 200
 
 
-@app.route('order-item', methods = ['PUT'])
+@app.route('/order-item', methods = ['PUT'])
 def changeOrderItemAmount():
     orderItemId = request.args.get('orderItemId', '')
     amount = request.args.get('amount', '')
@@ -309,7 +309,7 @@ def changeOrderItemAmount():
     return '', 200
 
 
-@app.route('order', methods = ['POST'])
+@app.route('/order', methods = ['POST'])
 def addNewOrder():
     requestData = request.get_json()
     connection = getConnection()
@@ -322,7 +322,7 @@ def addNewOrder():
     return requestData, 201
 
 
-@app.route('order/<int:orderId>', methods = ['PUT'])
+@app.route('/order/<int:orderId>', methods = ['PUT'])
 def payForOrder(orderId):
     connection = getConnection()
     cursor = connection.cursor()
